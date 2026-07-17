@@ -6,8 +6,8 @@ A collection of [Swamp](https://swamp.dev) extensions for integrating with exter
 
 | Extension | Description |
 |-----------|-------------|
-| [@figura/cribl-stream](./models/cribl-stream/) | Read-only troubleshooting integration for Cribl Stream Cloud (sources, pipelines, routes, destinations, event capture, health checks) |
-| [@figura/gitlab-mr-threads](./models/gitlab-mr-threads/) | Fetch, reply to, and resolve MR discussion threads via the GitLab REST API |
+| [@figura/cribl-stream](./extensions/models/cribl-stream/) | Read-only troubleshooting integration for Cribl Stream Cloud (sources, pipelines, routes, destinations, event capture, health checks) |
+| [@figura/gitlab-mr-threads](./extensions/models/gitlab-mr-threads/) | Fetch, reply to, and resolve MR discussion threads via the GitLab REST API |
 
 ## Installation
 

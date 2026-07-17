@@ -161,7 +161,7 @@ function parseNote(note: any): z.infer<typeof NoteSchema> {
 /** GitLab MR Discussion Threads — list, reply to, and resolve discussion threads on merge requests. */
 export const model = {
   type: "@figura/gitlab-mr-threads",
-  version: "2026.07.02.1",
+  version: "2026.07.17.1",
   globalArguments: GlobalArgsSchema,
   resources: {
     threads: {

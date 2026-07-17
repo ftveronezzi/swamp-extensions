@@ -1,6 +1,6 @@
 manifestVersion: 1
 name: '@figura/gitlab-mr-threads'
-version: 2026.07.02.1
+version: 2026.07.17.1
 description: >
   GitLab MR Discussion Threads — fetch, reply to, and resolve MR discussion
   threads via the GitLab REST API. Complements @webframp/gitlab (general MR

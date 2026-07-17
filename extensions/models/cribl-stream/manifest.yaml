@@ -1,6 +1,6 @@
 manifestVersion: 1
 name: '@figura/cribl-stream'
-version: 2026.07.07.2
+version: 2026.07.17.1
 description: >
   CRIBL Stream Cloud — read-only integration for troubleshooting sources,
   routes, pipelines, destinations, event capture, lookups, and knowledge

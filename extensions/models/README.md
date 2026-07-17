@@ -13,15 +13,12 @@ All methods are **read-only** — no mutations are performed on your Cribl envir
 
 ## Authentication
 
-Requires a Cribl Cloud API Client ID and Client Secret (OAuth2 `client_credentials` grant). Generate credentials in Cribl Cloud under **Settings → API Credentials**.
+Requires a Cribl Cloud API Client ID and Client Secret (OAuth2 `client_credentials` grant).
+Generate credentials in Cribl Cloud under **Settings → API Credentials** and store them in a swamp vault.
 
-Store the credentials in a swamp vault.
-
-## Usage Example
+## Usage
 
 ```typescript
-import { model } from "@figura/cribl-stream";
-
 // List all sources in the "default" worker group
 const result = await model.methods.list_sources.execute(
   { workerGroup: "default" },
@@ -33,7 +30,9 @@ const pipeline = await model.methods.get_pipeline.execute(
   { workerGroup: "default", pipelineId: "my-syslog-pipeline" },
   context,
 );
+```
 
+```typescript
 // Capture 5 live events from a source
 const events = await model.methods.capture_events.execute(
   { workerGroup: "default", sourceId: "syslog-in", maxEvents: 5 },
@@ -65,4 +64,4 @@ const health = await model.methods.health.execute(
 
 ## License
 
-MIT — see [LICENSE](../../LICENSE) in the repository root.
+MIT

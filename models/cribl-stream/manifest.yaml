@@ -1,0 +1,51 @@
+manifestVersion: 1
+name: '@figura/cribl-stream'
+version: 2026.07.07.2
+description: >
+  CRIBL Stream Cloud — read-only integration for troubleshooting sources,
+  routes, pipelines, destinations, event capture, lookups, and knowledge
+  objects via the CRIBL Cloud REST API.
+
+  Authentication uses OAuth2 client_credentials grant. All methods are
+  read-only observation/sync operations scoped to a worker group.
+
+  ## Authentication
+
+  Requires a CRIBL Cloud API Client ID and Client Secret, stored in a
+  swamp vault. Generate credentials in CRIBL Cloud under Settings → API
+  Credentials.
+
+  ## Methods
+
+  - **list_sources** — List all input sources in a worker group
+  - **get_source** — Get detailed config for a specific source
+  - **list_routes** — List routes with filter, pipeline, output mappings
+  - **list_pipelines** — List all pipelines in a worker group
+  - **get_pipeline** — Get pipeline config with all functions
+  - **list_destinations** — List output destinations with status
+  - **get_destination** — Get detailed config for a destination
+  - **capture_events** — Capture/preview live events at a pipeline point
+  - **list_lookups** — List lookup files in a worker group
+  - **list_knowledge** — List knowledge objects (parsers, vars, schemas)
+  - **health** — Fan-out health check across all components
+repository: 'https://github.com/ftveronezzi/swamp-extensions'
+models:
+  - cribl_stream.ts
+workflows: []
+vaults: []
+drivers: []
+datastores: []
+reports: []
+additionalFiles: []
+platforms:
+  - linux-x86_64
+  - linux-aarch64
+  - darwin-x86_64
+  - darwin-aarch64
+labels:
+  - cribl
+  - cribl-stream
+  - observability
+  - troubleshooting
+  - data-pipeline
+dependencies: []

@@ -1,0 +1,42 @@
+manifestVersion: 1
+name: '@figura/gitlab-mr-threads'
+version: 2026.07.02.1
+description: >
+  GitLab MR Discussion Threads — fetch, reply to, and resolve MR discussion
+  threads via the GitLab REST API. Complements @webframp/gitlab (general MR
+  notes) and @webframp/gitlab-review (diff-based reviews) by exposing the
+  thread/discussion lifecycle: list unresolved threads, reply within a thread,
+  and resolve threads programmatically.
+
+  ## Authentication
+
+  Requires a GitLab personal access token with `api` scope, stored in a
+  swamp vault.
+
+  ## Methods
+
+  - **list_mr_threads** — Fetch all discussion threads on an MR with
+    resolution status and file position context
+  - **reply_to_thread** — Post a reply to an existing discussion thread
+  - **resolve_thread** — Resolve or unresolve a discussion thread
+repository: 'https://github.com/ftveronezzi/swamp-extensions'
+models:
+  - gitlab_mr_threads.ts
+workflows: []
+vaults: []
+drivers: []
+datastores: []
+reports: []
+additionalFiles: []
+platforms:
+  - linux-x86_64
+  - linux-aarch64
+  - darwin-x86_64
+  - darwin-aarch64
+labels:
+  - gitlab
+  - merge-request
+  - discussion
+  - threads
+  - code-review
+dependencies: []

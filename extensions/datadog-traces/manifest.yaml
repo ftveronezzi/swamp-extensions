@@ -1,0 +1,41 @@
+manifestVersion: 1
+name: '@figura/datadog/traces'
+version: 2026.07.21.1
+description: >
+  Datadog APM Traces — search and aggregate APM trace spans via the Datadog
+  Spans API (v2). Supports all Datadog sites (us1, us3, us5, eu1, ap1,
+  us1-fed).
+
+  ## Authentication
+
+  Requires a Datadog API key and Application key, stored in a swamp vault.
+
+  ## Methods
+
+  - **list_spans** — Search APM trace spans with filter, time range, and sort
+  - **aggregate_spans** — Compute metrics/timeseries over APM spans (count,
+    avg, percentiles, etc. with group-by facets)
+repository: 'https://github.com/ftveronezzi/swamp-extensions'
+models:
+  - datadog/traces.ts
+workflows: []
+vaults: []
+drivers: []
+datastores: []
+reports: []
+additionalFiles:
+  - README.md
+  - LICENSE.md
+  - datadog/_lib/api.ts
+platforms:
+  - linux-x86_64
+  - linux-aarch64
+  - darwin-x86_64
+  - darwin-aarch64
+labels:
+  - datadog
+  - apm
+  - traces
+  - spans
+  - observability
+dependencies: []

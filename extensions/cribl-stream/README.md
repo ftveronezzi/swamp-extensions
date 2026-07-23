@@ -11,40 +11,16 @@ Read-only integration for troubleshooting [Cribl Stream](https://cribl.io/) Clou
 
 All methods are **read-only** — no mutations are performed on your Cribl environment.
 
+## Installation
+
+```bash
+swamp extension pull @figura/cribl-stream
+```
+
 ## Authentication
 
 Requires a Cribl Cloud API Client ID and Client Secret (OAuth2 `client_credentials` grant).
 Generate credentials in Cribl Cloud under **Settings → API Credentials** and store them in a swamp vault.
-
-## Usage
-
-```typescript
-// List all sources in the "default" worker group
-const result = await model.methods.list_sources.execute(
-  { workerGroup: "default" },
-  context,
-);
-
-// Get detailed config for a specific pipeline
-const pipeline = await model.methods.get_pipeline.execute(
-  { workerGroup: "default", pipelineId: "my-syslog-pipeline" },
-  context,
-);
-```
-
-```typescript
-// Capture 5 live events from a source
-const events = await model.methods.capture_events.execute(
-  { workerGroup: "default", sourceId: "syslog-in", maxEvents: 5 },
-  context,
-);
-
-// Run a health check across the worker group
-const health = await model.methods.health.execute(
-  { workerGroup: "default" },
-  context,
-);
-```
 
 ## Methods
 
@@ -62,6 +38,22 @@ const health = await model.methods.health.execute(
 | `list_knowledge` | List knowledge objects (parsers, vars, schemas) |
 | `health` | Fan-out health check across all components |
 
+## Usage
+
+```bash
+# List all sources in the "default" worker group
+swamp model method run cribl list_sources --set workerGroup=default
+
+# Get detailed config for a specific pipeline
+swamp model method run cribl get_pipeline --set workerGroup=default --set pipelineId=my-syslog-pipeline
+
+# Capture 5 live events from a source
+swamp model method run cribl capture_events --set workerGroup=default --set sourceId=syslog-in --set maxEvents=5
+
+# Run a health check across the worker group
+swamp model method run cribl health --set workerGroup=default
+```
+
 ## License
 
-MIT
+MIT — see [LICENSE.md](./LICENSE.md).

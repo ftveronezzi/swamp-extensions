@@ -1,0 +1,48 @@
+manifestVersion: 1
+name: '@figura/zabbix'
+version: 2026.07.20.1
+description: >
+  Zabbix Monitoring — read-only integration for troubleshooting and observing
+  monitored infrastructure via the Zabbix JSON-RPC 2.0 API. Retrieves hosts,
+  problems, triggers, items, history, host groups, maintenance windows, events,
+  and network maps.
+
+  ## Authentication
+
+  Requires a Zabbix API Token, stored in a swamp vault.
+
+  ## Methods
+
+  - **get_hosts** — List monitored hosts with status, availability, and groups
+  - **get_host_detail** — Get detailed host info (interfaces, macros, inventory)
+  - **get_problems** — List active problems/alerts with severity
+  - **get_triggers** — List triggers with state and associated hosts
+  - **get_items** — List monitoring items (metrics) for a host
+  - **get_history** — Get recent history/metric values for an item
+  - **get_host_groups** — List all host groups
+  - **get_maintenance** — List maintenance windows
+  - **get_events** — Get recent events (state changes, alerts)
+  - **get_map** — Retrieve a network map with elements and links
+repository: 'https://github.com/ftveronezzi/swamp-extensions'
+models:
+  - zabbix.ts
+workflows: []
+vaults: []
+drivers: []
+datastores: []
+reports: []
+additionalFiles:
+  - README.md
+  - LICENSE.md
+platforms:
+  - linux-x86_64
+  - linux-aarch64
+  - darwin-x86_64
+  - darwin-aarch64
+labels:
+  - zabbix
+  - monitoring
+  - observability
+  - alerts
+  - infrastructure
+dependencies: []

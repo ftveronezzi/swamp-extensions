@@ -1,0 +1,45 @@
+manifestVersion: 1
+name: '@local/terraform-scanner'
+version: 2026.07.21.1
+description: >
+  LLM-powered Terraform code quality scanner. Analyzes repositories (local or
+  GitLab remote) for naming convention consistency, internal module usage
+  patterns, code organization, and Terraform best practices. Uses
+  LiteLLM-compatible API for intelligent pattern detection and produces
+  structured findings with severity, suggestions, and agent-consumable output.
+
+  ## Methods
+
+  - **scan** — Scan a Terraform repo for code quality issues. Accepts a local
+    path or GitLab project, analyzes all .tf files, and produces findings
+    categorized by naming, modules, organization, and best practices.
+
+  ## Authentication
+
+  - LLM: LiteLLM-compatible base URL + API key
+  - GitLab (optional): host + personal access token for remote repo scanning
+repository: 'https://github.com/ftveronezzi/swamp-extensions'
+models:
+  - terraform_scanner.ts
+workflows: []
+vaults: []
+drivers: []
+datastores: []
+reports:
+  - terraform_scan_report.ts
+additionalFiles:
+  - README.md
+  - LICENSE.md
+platforms:
+  - linux-x86_64
+  - linux-aarch64
+  - darwin-x86_64
+  - darwin-aarch64
+labels:
+  - terraform
+  - code-quality
+  - scanner
+  - llm
+  - best-practices
+  - naming-conventions
+dependencies: []

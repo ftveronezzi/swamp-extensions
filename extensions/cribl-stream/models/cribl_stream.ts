@@ -316,7 +316,7 @@ function instanceKey(prefix: string, workerGroup: string, id?: string): string {
 /** CRIBL Stream Cloud read-only integration for troubleshooting. */
 export const model = {
   type: "@figura/cribl-stream",
-  version: "2026.07.17.1",
+  version: "2026.07.17.2",
   globalArguments: GlobalArgsSchema,
   resources: {
     sources: {

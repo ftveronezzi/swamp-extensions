@@ -27,7 +27,7 @@ const GlobalArgsSchema = z.object({
     "Model name for LLM calls (default: claude-haiku-3-5)",
   ),
   gitlabHost: z.string().optional().describe(
-    "GitLab hostname for remote repos (e.g. gitlab.example.com)",
+    "GitLab hostname for remote repos (e.g. git.bethelservice.org)",
   ),
   gitlabToken: z.string().optional().meta({ sensitive: true }).describe(
     "GitLab personal access token for remote repo access",
@@ -62,8 +62,12 @@ const FindingSchema = z.object({
 
 const PatternSummarySchema = z.object({
   naming: z.object({
-    resource_pattern: z.string().describe("Detected naming pattern for resources"),
-    variable_pattern: z.string().describe("Detected naming pattern for variables"),
+    resource_pattern: z.string().describe(
+      "Detected naming pattern for resources",
+    ),
+    variable_pattern: z.string().describe(
+      "Detected naming pattern for variables",
+    ),
     module_pattern: z.string().describe("Detected naming pattern for modules"),
     violations: z.number(),
   }),
@@ -303,7 +307,8 @@ async function callLLM(
 // Analysis Prompts
 // =============================================================================
 
-const SYSTEM_PROMPT = `You are a senior Terraform/infrastructure engineer performing a thorough code quality review. 
+const SYSTEM_PROMPT =
+  `You are a senior Terraform/infrastructure engineer performing a thorough code quality review. 
 You analyze Terraform codebases for:
 1. **Naming conventions** — Detect the dominant patterns in the codebase and flag inconsistencies
 2. **Module usage** — Identify where raw resources are used instead of available internal modules
@@ -312,12 +317,18 @@ You analyze Terraform codebases for:
 
 You MUST respond with valid JSON only. No markdown fences, no explanation outside the JSON.`;
 
-function buildAnalysisPrompt(files: RepoFile[], chunkIndex: number, totalChunks: number): string {
+function buildAnalysisPrompt(
+  files: RepoFile[],
+  chunkIndex: number,
+  totalChunks: number,
+): string {
   const fileList = files
     .map((f) => `--- FILE: ${f.path} ---\n${f.content}\n--- END FILE ---`)
     .join("\n\n");
 
-  return `Analyze these Terraform files (chunk ${chunkIndex + 1}/${totalChunks}). 
+  return `Analyze these Terraform files (chunk ${
+    chunkIndex + 1
+  }/${totalChunks}). 
 
 Return a JSON object with this exact structure:
 {
@@ -396,13 +407,12 @@ Return a JSON object with:
 // =============================================================================
 
 export const model = {
-  type: "@local/terraform-scanner",
+  type: "@figura/terraform-scanner",
   version: "2026.07.21.1",
   globalArguments: GlobalArgsSchema,
   resources: {
     scan_results: {
-      description:
-        "Full scan results with findings, patterns, and summaries",
+      description: "Full scan results with findings, patterns, and summaries",
       schema: ScanResultsSchema,
       lifetime: "30d" as const,
       garbageCollection: 10,
@@ -410,8 +420,7 @@ export const model = {
   },
   methods: {
     scan: {
-      description:
-        "Scan a Terraform repository for code quality issues. " +
+      description: "Scan a Terraform repository for code quality issues. " +
         "Provide either a local path OR a GitLab project path. " +
         "Analyzes naming conventions, module usage, code organization, " +
         "and Terraform best practices using LLM-powered analysis.",
@@ -528,7 +537,9 @@ export const model = {
             }
             const parsed = JSON.parse(jsonStr);
             if (parsed.findings) allFindings.push(...parsed.findings);
-            if (parsed.detected_patterns) allPatterns.push(parsed.detected_patterns);
+            if (parsed.detected_patterns) {
+              allPatterns.push(parsed.detected_patterns);
+            }
           } catch (e) {
             context.logger.warning(
               `Failed to parse LLM response for chunk ${i + 1}: ${e}`,
@@ -595,7 +606,8 @@ export const model = {
           if (parsed.patterns) patterns = parsed.patterns;
         } catch (e) {
           context.logger.warning(`Failed to parse summary response: ${e}`);
-          summary = `Scan completed with ${allFindings.length} findings across ${files.length} files.`;
+          summary =
+            `Scan completed with ${allFindings.length} findings across ${files.length} files.`;
           agentSummary = summary;
         }
 

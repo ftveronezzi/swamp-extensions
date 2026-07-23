@@ -29,7 +29,9 @@ const GlobalArgsSchema = z.object({
 const SpanItemSchema = z.object({
   id: z.string().describe("Unique ID of the span."),
   type: z.enum(["spans"]).optional().describe("Type of the event."),
-  trace_id: z.string().optional().describe("The trace ID this span belongs to."),
+  trace_id: z.string().optional().describe(
+    "The trace ID this span belongs to.",
+  ),
   span_id: z.string().optional().describe("The span ID."),
   parent_id: z.string().optional().describe("The parent span ID."),
   service: z.string().optional().describe(
@@ -46,7 +48,9 @@ const SpanItemSchema = z.object({
   host: z.string().optional().describe("Host that produced this span."),
   env: z.string().optional().describe("Environment tag value."),
   version: z.string().optional().describe("Service version."),
-  error_message: z.string().optional().describe("Error message if status is error."),
+  error_message: z.string().optional().describe(
+    "Error message if status is error.",
+  ),
   error_type: z.string().optional().describe("Error type/class."),
   attributes: z.record(z.string(), z.unknown()).optional().describe(
     "Additional span attributes/tags.",
@@ -150,7 +154,9 @@ async function spanSearchPaginated(
       if (!response.ok) {
         const text = await response.text();
         throw new Error(
-          `Datadog API rate limited (429) after retry on page ${page}: ${text.slice(0, 300)}`,
+          `Datadog API rate limited (429) after retry on page ${page}: ${
+            text.slice(0, 300)
+          }`,
         );
       }
     }
@@ -205,7 +211,7 @@ async function spanSearchPaginated(
 
 /** Datadog APM Traces — span search and aggregation */
 export const model = {
-  type: "datadog/traces",
+  type: "@figura/datadog/traces",
   version: "2026.07.21.1",
   globalArguments: GlobalArgsSchema,
 
@@ -293,7 +299,8 @@ export const model = {
     },
 
     aggregate_spans: {
-      description: "Aggregate spans — compute metrics/timeseries over APM spans",
+      description:
+        "Aggregate spans — compute metrics/timeseries over APM spans",
       arguments: z.object({
         compute: z.array(z.unknown()).optional().describe(
           "The list of metrics or timeseries to compute for the retrieved buckets (e.g. [{aggregation: 'count', type: 'total'}]).",
@@ -327,7 +334,11 @@ export const model = {
         // Parse JSON string arguments (swamp passes --arg values as strings)
         const parseArg = (val: unknown): unknown => {
           if (typeof val === "string") {
-            try { return JSON.parse(val); } catch { return val; }
+            try {
+              return JSON.parse(val);
+            } catch {
+              return val;
+            }
           }
           return val;
         };

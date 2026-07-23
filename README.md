@@ -10,7 +10,7 @@ A collection of [Swamp](https://swamp.dev) extensions for integrating with exter
 | [@figura/gitlab-mr-threads](./extensions/gitlab-mr-threads/) | Fetch, reply to, and resolve MR discussion threads via the GitLab REST API |
 | [@figura/zabbix](./extensions/zabbix/) | Read-only Zabbix monitoring integration (hosts, problems, triggers, items, history, maps) |
 | [@figura/datadog/traces](./extensions/datadog-traces/) | Search and aggregate APM trace spans via the Datadog Spans API (v2) |
-| [@local/terraform-scanner](./extensions/terraform-scanner/) | LLM-powered Terraform code quality scanner with report generation |
+| [@figura/terraform-scanner](./extensions/terraform-scanner/) | LLM-powered Terraform code quality scanner with report generation |
 
 ## Installation
 
@@ -21,7 +21,7 @@ swamp extension pull @figura/cribl-stream
 swamp extension pull @figura/gitlab-mr-threads
 swamp extension pull @figura/zabbix
 swamp extension pull @figura/datadog/traces
-swamp extension pull @local/terraform-scanner
+swamp extension pull @figura/terraform-scanner
 ```
 
 ## Repository Structure
@@ -48,7 +48,7 @@ extensions/
 │   ├── models/datadog/
 │   ├── README.md
 │   └── LICENSE.md
-└── terraform-scanner/     # @local/terraform-scanner
+└── terraform-scanner/     # @figura/terraform-scanner
     ├── manifest.yaml
     ├── models/
     ├── reports/

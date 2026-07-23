@@ -56,7 +56,7 @@ interface ScanResults {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function severityEmoji(severity: string): string {
+function _severityEmoji(severity: string): string {
   switch (severity) {
     case "critical":
       return "🔴";
@@ -90,7 +90,7 @@ function formatDate(iso: string): string {
 // ─── Report ───────────────────────────────────────────────────────────────────
 
 export const report = {
-  name: "@local/terraform-scan-report",
+  name: "@figura/terraform-scan-report",
   description:
     "Terraform scan results formatted for human reading and agent consumption",
   scope: "workflow" as const,
@@ -126,7 +126,8 @@ export const report = {
     );
 
     if (!scanStep) {
-      const md = "# ❌ Terraform Scan Report\n\nNo successful scan results found.";
+      const md =
+        "# ❌ Terraform Scan Report\n\nNo successful scan results found.";
       return {
         markdown: md,
         json: { error: "No scan results found", status: "failed" },
@@ -195,14 +196,18 @@ export const report = {
 
     md += `### Module Usage\n`;
     if (results.patterns.modules.internal_modules_used.length > 0) {
-      md += `- **Internal modules found:** ${results.patterns.modules.internal_modules_used.join(", ")}\n`;
+      md += `- **Internal modules found:** ${
+        results.patterns.modules.internal_modules_used.join(", ")
+      }\n`;
     } else {
       md += `- No internal modules detected\n`;
     }
     if (
       results.patterns.modules.raw_resources_that_should_be_modules.length > 0
     ) {
-      md += `- **Should use modules instead:** ${results.patterns.modules.raw_resources_that_should_be_modules.join(", ")}\n`;
+      md += `- **Should use modules instead:** ${
+        results.patterns.modules.raw_resources_that_should_be_modules.join(", ")
+      }\n`;
     }
     md += `- Violations: ${results.patterns.modules.violations}\n\n`;
 
@@ -227,7 +232,9 @@ export const report = {
       md += `## 🔴 Critical Findings\n\n`;
       for (const f of criticals) {
         md += `### ${f.title}\n`;
-        md += `**File:** \`${f.file}\`${f.line ? ` (line ${f.line})` : ""} | **Category:** ${categoryLabel(f.category)}\n\n`;
+        md += `**File:** \`${f.file}\`${
+          f.line ? ` (line ${f.line})` : ""
+        } | **Category:** ${categoryLabel(f.category)}\n\n`;
         md += `${f.description}\n\n`;
         md += `**Suggestion:** ${f.suggestion}\n`;
         if (f.pattern_context) {
@@ -242,7 +249,11 @@ export const report = {
       md += `| File | Title | Category | Suggestion |\n`;
       md += `|------|-------|----------|------------|\n`;
       for (const f of warnings) {
-        md += `| \`${f.file}\`${f.line ? `:${f.line}` : ""} | ${f.title} | ${categoryLabel(f.category)} | ${f.suggestion.slice(0, 100)}${f.suggestion.length > 100 ? "..." : ""} |\n`;
+        md += `| \`${f.file}\`${f.line ? `:${f.line}` : ""} | ${f.title} | ${
+          categoryLabel(f.category)
+        } | ${f.suggestion.slice(0, 100)}${
+          f.suggestion.length > 100 ? "..." : ""
+        } |\n`;
       }
       md += "\n";
     }
@@ -252,7 +263,9 @@ export const report = {
       md += `| File | Title | Category |\n`;
       md += `|------|-------|----------|\n`;
       for (const f of infos.slice(0, 20)) {
-        md += `| \`${f.file}\`${f.line ? `:${f.line}` : ""} | ${f.title} | ${categoryLabel(f.category)} |\n`;
+        md += `| \`${f.file}\`${f.line ? `:${f.line}` : ""} | ${f.title} | ${
+          categoryLabel(f.category)
+        } |\n`;
       }
       if (infos.length > 20) {
         md += `\n_...and ${infos.length - 20} more info-level findings._\n`;

@@ -1,6 +1,6 @@
 manifestVersion: 1
 name: '@figura/zabbix'
-version: 2026.07.20.1
+version: 2026.07.23.1
 description: >
   Zabbix Monitoring — read-only integration for troubleshooting and observing
   monitored infrastructure via the Zabbix JSON-RPC 2.0 API. Retrieves hosts,

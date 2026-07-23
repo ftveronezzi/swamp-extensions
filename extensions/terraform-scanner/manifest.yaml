@@ -1,5 +1,5 @@
 manifestVersion: 1
-name: '@local/terraform-scanner'
+name: '@figura/terraform-scanner'
 version: 2026.07.21.1
 description: >
   LLM-powered Terraform code quality scanner. Analyzes repositories (local or

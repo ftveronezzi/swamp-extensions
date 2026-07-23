@@ -1,4 +1,4 @@
-# @local/terraform-scanner
+# @figura/terraform-scanner
 
 LLM-powered Terraform code quality scanner. Analyzes repositories (local or GitLab remote) for naming convention consistency, internal module usage patterns, code organization, and Terraform best practices.
 
@@ -7,7 +7,7 @@ Uses a LiteLLM-compatible API for intelligent pattern detection and produces str
 ## Installation
 
 ```bash
-swamp extension pull @local/terraform-scanner
+swamp extension pull @figura/terraform-scanner
 ```
 
 ## Authentication

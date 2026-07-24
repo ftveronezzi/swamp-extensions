@@ -1,0 +1,46 @@
+manifestVersion: 1
+name: '@figura/datadog/rbac'
+version: 2026.07.24.1
+description: >
+  Datadog RBAC — role, permission, user, and restriction query analysis via the
+  Datadog RBAC API (v2). Answers "who can access what data?" by resolving the
+  full chain: user → roles → permissions + restriction queries → effective access.
+  Supports all Datadog sites (us1, us3, us5, eu1, ap1, us1-fed).
+
+  ## Authentication
+
+  Requires a Datadog API key and Application key, stored in a swamp vault.
+
+  ## Methods
+
+  - **list_roles** — List all roles with their assigned permissions
+  - **list_users** — List all users with role assignments
+  - **list_permissions** — Full permission catalog
+  - **list_restriction_queries** — Dataset-level filters (logs, traces, events, RUM)
+  - **analyze_access** — Resolve effective access for a specific user or role
+repository: 'https://github.com/ftveronezzi/swamp-extensions'
+models:
+  - datadog/rbac.ts
+workflows: []
+vaults: []
+drivers: []
+datastores: []
+reports:
+  - datadog_rbac_report.ts
+additionalFiles:
+  - README.md
+  - LICENSE.md
+  - models/datadog/_lib/api.ts
+platforms:
+  - linux-x86_64
+  - linux-aarch64
+  - darwin-x86_64
+  - darwin-aarch64
+labels:
+  - datadog
+  - rbac
+  - roles
+  - permissions
+  - security
+  - access-control
+dependencies: []

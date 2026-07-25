@@ -1,6 +1,6 @@
 manifestVersion: 1
 name: '@figura/news-scraper'
-version: 2026.07.24.1
+version: 2026.07.24.2
 description: >
   Configurable News Scraper — collects articles from any set of RSS/Atom
   feeds the user provides. Supports multiple sources with category tagging,

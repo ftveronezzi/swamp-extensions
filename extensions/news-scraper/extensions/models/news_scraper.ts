@@ -281,7 +281,7 @@ async function gatherAll(
 /** Configurable News Scraper model. */
 export const model = {
   type: "@figura/news-scraper" as const,
-  version: "2026.07.24.1",
+  version: "2026.07.24.2",
   globalArguments: GlobalArgsSchema,
   resources: {
     "news-brief": {

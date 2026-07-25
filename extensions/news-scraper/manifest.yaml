@@ -1,0 +1,65 @@
+manifestVersion: 1
+name: '@figura/news-scraper'
+version: 2026.07.24.1
+description: >
+  Configurable News Scraper — collects articles from any set of RSS/Atom
+  feeds the user provides. Supports multiple sources with category tagging,
+  deduplication, and date sorting. Includes a multi-language summary report
+  (English, Portuguese, Spanish).
+
+  ## Configuration
+
+  Provide your sources as a JSON array in `globalArguments.sources`:
+  ```json
+  [
+    {
+      "name": "BBC News",
+      "feeds": [
+        { "url": "https://feeds.bbci.co.uk/news/rss.xml", "category": "general" },
+        { "url": "https://feeds.bbci.co.uk/news/technology/rss.xml", "category": "technology" }
+      ]
+    },
+    {
+      "name": "Reuters",
+      "feeds": [
+        { "url": "https://www.reutersagency.com/feed/", "category": "general" }
+      ]
+    }
+  ]
+  ```
+
+  ## Methods
+
+  - **gather** — Fetch all configured RSS/Atom feeds, parse articles,
+    deduplicate by URL, sort by date, and write a consolidated brief.
+
+  ## Report
+
+  - **@figura/news-summary** — Formatted markdown briefing with top
+    headlines and per-source sections. Supports `en`, `pt-BR`, and `es`.
+repository: 'https://github.com/ftveronezzi/swamp-extensions'
+license: MIT
+models:
+  - news_scraper.ts
+workflows: []
+vaults: []
+drivers: []
+datastores: []
+reports:
+  - news_summary.ts
+additionalFiles:
+  - README.md
+  - LICENSE.md
+platforms:
+  - linux-x86_64
+  - linux-aarch64
+  - darwin-x86_64
+  - darwin-aarch64
+labels:
+  - news
+  - rss
+  - atom
+  - scraper
+  - feeds
+  - configurable
+dependencies: []

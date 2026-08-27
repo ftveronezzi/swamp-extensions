@@ -37,6 +37,11 @@ Generate credentials in Cribl Cloud under **Settings → API Credentials** and s
 | `list_lookups` | List lookup files in a worker group |
 | `list_knowledge` | List knowledge objects (parsers, vars, schemas) |
 | `health` | Fan-out health check across all components |
+| `list_notifications` | CRIBL's own raised/resolved alert feed for a worker group |
+| `list_log_files` | List available log files for a worker group instance |
+| `get_log_lines` | Read parsed log events from one log file, with an optional filter expression |
+| `check_status_page` | Check CRIBL's public status page for ongoing incidents/maintenances (unauthenticated) |
+| `list_status_page_incidents` | List CRIBL's historical status-page incidents (unauthenticated) |
 
 ## Usage
 

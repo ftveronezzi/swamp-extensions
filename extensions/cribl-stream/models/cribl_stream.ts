@@ -185,6 +185,43 @@ const HealthOutputSchema = z.object({
   fetchedAt: z.string(),
 });
 
+const NotificationsOutputSchema = z.object({
+  workerGroup: z.string(),
+  items: z.array(z.record(z.unknown())),
+  count: z.number(),
+  fetchedAt: z.string(),
+});
+
+const LogFilesOutputSchema = z.object({
+  workerGroup: z.string(),
+  files: z.array(z.record(z.unknown())),
+  fetchedAt: z.string(),
+});
+
+const LogLinesOutputSchema = z.object({
+  workerGroup: z.string(),
+  fileId: z.string(),
+  filter: z.string().optional(),
+  events: z.array(z.record(z.unknown())),
+  endOfResults: z.boolean().optional(),
+  fetchedAt: z.string(),
+});
+
+const StatusPageOutputSchema = z.object({
+  indicator: z.string(),
+  description: z.string(),
+  unresolvedIncidents: z.array(z.record(z.unknown())),
+  activeMaintenances: z.array(z.record(z.unknown())),
+  fetchedAt: z.string(),
+});
+
+const StatusPageIncidentsOutputSchema = z.object({
+  page: z.number(),
+  incidents: z.array(z.record(z.unknown())),
+  count: z.number(),
+  fetchedAt: z.string(),
+});
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -304,6 +341,9 @@ function workerPath(workerGroup: string, subpath: string): string {
   return `/api/v1/m/${encodeURIComponent(workerGroup)}${subpath}`;
 }
 
+/** Base URL for Cribl's public, unauthenticated status page (statuspage.io). */
+const CRIBL_STATUSPAGE_BASE = "https://cribl.statuspage.io/api/v2";
+
 function instanceKey(prefix: string, workerGroup: string, id?: string): string {
   const base = `${prefix}-${workerGroup}`;
   return id ? `${base}-${id}` : base;
@@ -316,7 +356,7 @@ function instanceKey(prefix: string, workerGroup: string, id?: string): string {
 /** CRIBL Stream Cloud read-only integration for troubleshooting. */
 export const model = {
   type: "@figura/cribl-stream",
-  version: "2026.07.17.2",
+  version: "2026.08.27.1",
   globalArguments: GlobalArgsSchema,
   resources: {
     sources: {
@@ -384,6 +424,38 @@ export const model = {
       schema: HealthOutputSchema,
       lifetime: "5m" as const,
       garbageCollection: 5,
+    },
+    notifications: {
+      description:
+        "CRIBL's own raised/resolved alerts for a worker group (unhealthy destination, " +
+        "no data received, PQ capacity, license expiry)",
+      schema: NotificationsOutputSchema,
+      lifetime: "15m" as const,
+      garbageCollection: 10,
+    },
+    log_files: {
+      description: "Available log files for a worker group instance (access.log, cribl.log, ...)",
+      schema: LogFilesOutputSchema,
+      lifetime: "15m" as const,
+      garbageCollection: 10,
+    },
+    log_lines: {
+      description: "Parsed JSON log events read from one worker-group log file",
+      schema: LogLinesOutputSchema,
+      lifetime: "15m" as const,
+      garbageCollection: 10,
+    },
+    status_page: {
+      description: "CRIBL's public status page (status.cribl.cloud) summary",
+      schema: StatusPageOutputSchema,
+      lifetime: "5m" as const,
+      garbageCollection: 10,
+    },
+    status_page_incidents: {
+      description: "One page of CRIBL's historical status-page incidents (resolved + unresolved)",
+      schema: StatusPageIncidentsOutputSchema,
+      lifetime: "15m" as const,
+      garbageCollection: 10,
     },
   },
   methods: {
@@ -1180,6 +1252,247 @@ export const model = {
           workerGroup: args.workerGroup,
           overall,
           components: components.length,
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    list_notifications: {
+      description:
+        "List CRIBL's own raised/resolved notifications for a worker group -- its native " +
+        "alerting for unhealthy destinations, no-data-received sources, and PQ capacity. " +
+        "This is a separate, group-scoped alert feed from the per-source/destination " +
+        "`config.status.notifications` field returned by get_source/get_destination, which " +
+        "has been observed to always be empty in practice. An empty result here despite a " +
+        "Red destination status means CRIBL's own alerting hasn't fired for the condition, " +
+        "not that everything is fine.",
+      arguments: z.object({
+        workerGroup: z.string().describe("Worker group name"),
+      }),
+      execute: async (
+        args: { workerGroup: string },
+        context: ModelContext,
+      ) => {
+        const { baseUrl, clientId, clientSecret } = context.globalArgs;
+        const path = workerPath(args.workerGroup, "/notifications");
+        const resp = await criblGet(baseUrl, clientId, clientSecret, path) as {
+          items?: Record<string, unknown>[];
+          count?: number;
+        };
+
+        const data = {
+          workerGroup: args.workerGroup,
+          items: resp.items ?? [],
+          count: resp.count ?? (resp.items?.length ?? 0),
+          fetchedAt: new Date().toISOString(),
+        };
+
+        const handle = await context.writeResource(
+          "notifications",
+          instanceKey("notifications", args.workerGroup),
+          data,
+        );
+
+        context.logger.info("Fetched CRIBL notifications", {
+          workerGroup: args.workerGroup,
+          count: data.count,
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    list_log_files: {
+      description:
+        "List available log files for a worker group's instance (access.log, audit.log, " +
+        "cribl.log, cribl_stderr.log, ...), each with id/path/size. Use the returned `id` " +
+        "values (e.g. '__instance__:cribl.log') with get_log_lines.",
+      arguments: z.object({
+        workerGroup: z.string().describe("Worker group name"),
+      }),
+      execute: async (
+        args: { workerGroup: string },
+        context: ModelContext,
+      ) => {
+        const { baseUrl, clientId, clientSecret } = context.globalArgs;
+        const path = workerPath(args.workerGroup, "/system/logs");
+        const resp = await criblGet(baseUrl, clientId, clientSecret, path) as {
+          items?: Record<string, unknown>[];
+        };
+
+        const data = {
+          workerGroup: args.workerGroup,
+          files: resp.items ?? [],
+          fetchedAt: new Date().toISOString(),
+        };
+
+        const handle = await context.writeResource(
+          "log_files",
+          instanceKey("log-files", args.workerGroup),
+          data,
+        );
+
+        context.logger.info("Fetched CRIBL log file list", {
+          workerGroup: args.workerGroup,
+          fileCount: data.files.length,
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    get_log_lines: {
+      description:
+        "Read parsed JSON log events from one worker-group log file (see list_log_files for " +
+        "valid fileIds, e.g. '__instance__:cribl.log'). Without `filter`, returns only the " +
+        "current live tail -- pass a JS boolean expression in `filter` (evaluated per event " +
+        "against fields like `_raw`, `message`, `channel`, `level`, e.g. " +
+        "\"_raw.includes('datadog') || _raw.includes('decrypt')\") to search further back. " +
+        "This is the only way to see actual runtime errors (auth failures, secret decrypt " +
+        "failures, destination connection errors) that never surface in source/destination " +
+        "config or health-check output.",
+      arguments: z.object({
+        workerGroup: z.string().describe("Worker group name"),
+        fileId: z.string().describe(
+          "Log file id from list_log_files, e.g. '__instance__:cribl.log'",
+        ),
+        filter: z.string().optional().describe(
+          "JS boolean expression evaluated per event, e.g. \"_raw.includes('datadog')\"",
+        ),
+      }),
+      execute: async (
+        args: { workerGroup: string; fileId: string; filter?: string },
+        context: ModelContext,
+      ) => {
+        const { baseUrl, clientId, clientSecret } = context.globalArgs;
+        const query = args.filter ? `?filter=${encodeURIComponent(args.filter)}` : "";
+        const path = workerPath(
+          args.workerGroup,
+          `/system/logs/${encodeURIComponent(args.fileId)}${query}`,
+        );
+        const resp = await criblGet(baseUrl, clientId, clientSecret, path) as {
+          items?: { events?: Record<string, unknown>[]; endOfResults?: boolean }[];
+        };
+        const item = resp.items?.[0];
+
+        const data = {
+          workerGroup: args.workerGroup,
+          fileId: args.fileId,
+          filter: args.filter,
+          events: item?.events ?? [],
+          endOfResults: item?.endOfResults,
+          fetchedAt: new Date().toISOString(),
+        };
+
+        const handle = await context.writeResource(
+          "log_lines",
+          instanceKey("log-lines", args.workerGroup, args.fileId.replace(/[^a-zA-Z0-9]/g, "_")),
+          data,
+        );
+
+        context.logger.info("Fetched CRIBL log lines", {
+          workerGroup: args.workerGroup,
+          fileId: args.fileId,
+          eventCount: data.events.length,
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    check_status_page: {
+      description:
+        "Check CRIBL's public status page (status.cribl.cloud) for the overall system " +
+        "indicator, any unresolved incidents, and active scheduled maintenances. " +
+        "Unauthenticated -- doesn't use globalArgs, unlike every other method on this model.",
+      arguments: z.object({}),
+      execute: async (
+        _args: Record<string, never>,
+        context: ModelContext,
+      ) => {
+        const [statusResp, incidentsResp, maintResp] = await Promise.all([
+          fetch(`${CRIBL_STATUSPAGE_BASE}/status.json`),
+          fetch(`${CRIBL_STATUSPAGE_BASE}/incidents/unresolved.json`),
+          fetch(`${CRIBL_STATUSPAGE_BASE}/scheduled-maintenances/active.json`),
+        ]);
+
+        for (const [name, resp] of [
+          ["status", statusResp],
+          ["incidents", incidentsResp],
+          ["maintenances", maintResp],
+        ] as const) {
+          if (!resp.ok) {
+            throw new Error(`CRIBL status page ${name} fetch failed: ${resp.status}`);
+          }
+        }
+
+        const status = await statusResp.json() as {
+          status: { indicator: string; description: string };
+        };
+        const incidents = await incidentsResp.json() as {
+          incidents: Record<string, unknown>[];
+        };
+        const maintenances = await maintResp.json() as {
+          scheduled_maintenances: Record<string, unknown>[];
+        };
+
+        const data = {
+          indicator: status.status.indicator,
+          description: status.status.description,
+          unresolvedIncidents: incidents.incidents ?? [],
+          activeMaintenances: maintenances.scheduled_maintenances ?? [],
+          fetchedAt: new Date().toISOString(),
+        };
+
+        const handle = await context.writeResource(
+          "status_page",
+          "status-page",
+          data,
+        );
+
+        context.logger.info("Checked CRIBL status page", {
+          indicator: data.indicator,
+          unresolvedIncidents: data.unresolvedIncidents.length,
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    list_status_page_incidents: {
+      description:
+        "List CRIBL's historical status-page incidents (resolved and unresolved), most " +
+        "recent first -- unlike check_status_page, which only covers what's unresolved right " +
+        "now. Use to check whether a past outage window was ever publicly acknowledged, even " +
+        "if since resolved (e.g. a rolling-upgrade fix for a known secrets/auth bug that may " +
+        "still explain a since-observed regression). Unauthenticated -- doesn't use globalArgs.",
+      arguments: z.object({
+        page: z.number().int().min(1).default(1).describe(
+          "Page number for the statuspage.io incidents.json endpoint",
+        ),
+      }),
+      execute: async (
+        args: { page: number },
+        context: ModelContext,
+      ) => {
+        const resp = await fetch(`${CRIBL_STATUSPAGE_BASE}/incidents.json?page=${args.page}`);
+        if (!resp.ok) {
+          throw new Error(`CRIBL status page incidents fetch failed: ${resp.status}`);
+        }
+        const body = await resp.json() as { incidents: Record<string, unknown>[] };
+
+        const data = {
+          page: args.page,
+          incidents: body.incidents ?? [],
+          count: body.incidents?.length ?? 0,
+          fetchedAt: new Date().toISOString(),
+        };
+
+        const handle = await context.writeResource(
+          "status_page_incidents",
+          instanceKey("status-page-incidents", `p${args.page}`),
+          data,
+        );
+
+        context.logger.info("Fetched CRIBL status page incidents", {
+          page: args.page,
+          count: data.count,
         });
         return { dataHandles: [handle] };
       },

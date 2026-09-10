@@ -228,6 +228,35 @@ const MapOutputSchema = z.object({
   fetchedAt: z.string(),
 });
 
+const LinkedHostSchema = z.object({
+  hostid: z.string(),
+  host: z.string().describe("Technical host name"),
+  name: z.string().describe("Visible host name"),
+  status: z.string().describe("0 = monitored, 1 = not monitored"),
+});
+
+const TemplateLinkageSchema = z.object({
+  templates: z.array(z.object({
+    templateid: z.string(),
+    host: z.string().describe("Technical template name"),
+    name: z.string().describe("Visible template name"),
+    hostCount: z.number().describe("Hosts linked directly to this template"),
+    hosts: z.array(LinkedHostSchema),
+    linkedTemplateCount: z.number().describe(
+      "Other templates that link this one. Non-zero means it is still in use.",
+    ),
+    linkedTemplates: z.array(z.object({
+      templateid: z.string(),
+      name: z.string(),
+    })),
+  })),
+  totalCount: z.number(),
+  truncated: z.boolean().describe(
+    "More templates matched than the limit returned",
+  ),
+  fetchedAt: z.string(),
+});
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -385,6 +414,13 @@ export const model = {
       lifetime: "10m" as const,
       garbageCollection: 10,
     },
+    template_linkage: {
+      description:
+        "Templates matching a name search, each with the hosts linked to it and the templates that compose it",
+      schema: TemplateLinkageSchema,
+      lifetime: "15m" as const,
+      garbageCollection: 5,
+    },
   },
   methods: {
     get_hosts: {
@@ -423,8 +459,8 @@ export const model = {
           params.groupids = args.groupIds;
         }
         if (args.search) {
+          // No searchWildcardsEnabled: it would make a term without "*" exact.
           params.search = { name: args.search };
-          params.searchWildcardsEnabled = true;
         }
 
         const result = await zabbixRpc(
@@ -884,8 +920,8 @@ export const model = {
           sortfield: "name",
         };
         if (args.search) {
+          // No searchWildcardsEnabled: it would make a term without "*" exact.
           params.search = { name: args.search };
-          params.searchWildcardsEnabled = true;
         }
 
         const result = await zabbixRpc(
@@ -1226,6 +1262,90 @@ export const model = {
           name: m.name,
           elements: selements.length,
           links: links.length,
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    get_template_linkage: {
+      description:
+        "For each matching template, list the hosts linked to it and the other templates that link it. Use before retiring a template: hostCount 0 with linkedTemplateCount 0 means it is unused, but a role composing it still counts as use. Pass a search term in a large environment: every template carries its full host list, so an unfiltered call returns a big payload.",
+      arguments: z.object({
+        search: z.string().optional().describe(
+          "Partial, case-insensitive match on the template name. Omit to list every template.",
+        ),
+        limit: z.number().optional().describe(
+          "Max templates to return (default 100). Check the truncated flag.",
+        ),
+      }),
+      execute: async (
+        args: { search?: string; limit?: number },
+        context: ModelContext,
+      ) => {
+        const { baseUrl, apiToken, caCert } = context.globalArgs;
+        const limit = args.limit ?? 100;
+
+        const params: Record<string, unknown> = {
+          output: ["templateid", "host", "name"],
+          selectHosts: ["hostid", "host", "name", "status"],
+          selectTemplates: ["templateid", "name"],
+          sortfield: "name",
+          limit: limit + 1,
+        };
+        if (args.search) {
+          params.search = { name: args.search };
+        }
+
+        const result = await zabbixRpc(
+          baseUrl,
+          apiToken,
+          "template.get",
+          params,
+          caCert,
+        ) as unknown[];
+
+        const truncated = result.length > limit;
+
+        // deno-lint-ignore no-explicit-any
+        const templates = result.slice(0, limit).map((t: any) => {
+          const hosts = (t.hosts ?? []).map((h: Record<string, string>) => ({
+            hostid: h.hostid,
+            host: h.host,
+            name: h.name,
+            status: h.status,
+          }));
+          const linkedTemplates = (t.templates ?? []).map(
+            (l: Record<string, string>) => ({
+              templateid: l.templateid,
+              name: l.name,
+            }),
+          );
+          return {
+            templateid: t.templateid,
+            host: t.host,
+            name: t.name,
+            hostCount: hosts.length,
+            hosts,
+            linkedTemplateCount: linkedTemplates.length,
+            linkedTemplates,
+          };
+        });
+
+        const data = {
+          templates,
+          totalCount: templates.length,
+          truncated,
+          fetchedAt: new Date().toISOString(),
+        };
+
+        const handle = await context.writeResource(
+          "template_linkage",
+          args.search ? `linkage-search-${args.search}` : "linkage-all",
+          data,
+        );
+        context.logger.info("Fetched Zabbix template linkage", {
+          templates: templates.length,
+          truncated: data.truncated,
         });
         return { dataHandles: [handle] };
       },

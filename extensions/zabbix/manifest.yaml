@@ -1,11 +1,11 @@
 manifestVersion: 1
 name: '@figura/zabbix'
-version: 2026.07.23.1
+version: 2026.09.10.1
 description: >
   Zabbix Monitoring — read-only integration for troubleshooting and observing
   monitored infrastructure via the Zabbix JSON-RPC 2.0 API. Retrieves hosts,
   problems, triggers, items, history, host groups, maintenance windows, events,
-  and network maps.
+  network maps, and template linkage.
 
   ## Authentication
 
@@ -23,6 +23,7 @@ description: >
   - **get_maintenance** — List maintenance windows
   - **get_events** — Get recent events (state changes, alerts)
   - **get_map** — Retrieve a network map with elements and links
+  - **get_template_linkage** — List the hosts and templates linked to a template
 repository: 'https://github.com/ftveronezzi/swamp-extensions'
 models:
   - zabbix.ts

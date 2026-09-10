@@ -28,6 +28,7 @@ Requires a Zabbix API Token, stored in a swamp vault. Generate one in Zabbix und
 | `get_maintenance` | List maintenance windows |
 | `get_events` | Get recent events (state changes, alerts) |
 | `get_map` | Retrieve a network map with elements and links |
+| `get_template_linkage` | List the hosts and templates linked to a template |
 
 ## Usage
 

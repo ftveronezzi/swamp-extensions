@@ -56,6 +56,7 @@ const HostInterfaceSchema = z.object({
   port: z.string(),
   type: z.string().describe("1=agent, 2=SNMP, 3=IPMI, 4=JMX"),
   main: z.string(),
+  useip: z.string().describe("1 = connect by IP, 0 = connect by DNS"),
 });
 
 const HostDetailSchema = z.object({
@@ -529,6 +530,7 @@ export const model = {
             "port",
             "type",
             "main",
+            "useip",
           ],
           selectMacros: ["macro", "value"],
           selectInventory: "extend",

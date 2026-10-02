@@ -257,6 +257,54 @@ const TemplateLinkageSchema = z.object({
   fetchedAt: z.string(),
 });
 
+const ScopedHostSchema = z.object({
+  hostid: z.string(),
+  host: z.string().describe("Technical host name"),
+  name: z.string().describe("Visible host name"),
+});
+
+const ScopedTriggersSchema = z.object({
+  triggers: z.array(z.object({
+    triggerid: z.string(),
+    description: z.string().describe("Trigger name with macros expanded"),
+    expression: z.string().describe(
+      "Trigger expression with host and item key. Identifies which metric fired.",
+    ),
+    priority: z.string().describe("0 not classified .. 4 high, 5 disaster"),
+    value: z.string().describe("0 = OK, 1 = PROBLEM"),
+    lastchange: z.string().describe("Unix timestamp of the last state change"),
+    hosts: z.array(ScopedHostSchema),
+  })),
+  totalCount: z.number(),
+  limit: z.number(),
+  truncated: z.boolean().describe(
+    "True when the result filled the limit. The rows are then a window ordered by lastchange, not the full answer.",
+  ),
+  minSeverity: z.number(),
+  groupIds: z.array(z.string()),
+  fetchedAt: z.string(),
+});
+
+const ScopedEventsSchema = z.object({
+  events: z.array(z.object({
+    eventid: z.string(),
+    objectid: z.string().describe("The trigger ID this event belongs to"),
+    clock: z.string().describe("Unix timestamp of the transition"),
+    value: z.string().describe("1 = went to PROBLEM, 0 = resolved"),
+    name: z.string().optional(),
+    severity: z.string().optional(),
+    acknowledged: z.string().optional(),
+    hosts: z.array(ScopedHostSchema),
+  })),
+  totalCount: z.number(),
+  limit: z.number(),
+  truncated: z.boolean().describe(
+    "True when the result filled the limit. The rows are then a window, not the full answer.",
+  ),
+  groupIds: z.array(z.string()),
+  fetchedAt: z.string(),
+});
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -342,6 +390,30 @@ async function zabbixRpc(
   return json.result;
 }
 
+/**
+ * Resolve a host group name to IDs, or pass through IDs already given.
+ *
+ * Uses `filter`, not `search`: `search` is a partial match, so a name would
+ * also match every group that contains it.
+ */
+async function resolveGroupIds(
+  globalArgs: GlobalArgs,
+  groupIds: string[] | undefined,
+  groupName: string | undefined,
+): Promise<string[]> {
+  if (groupIds?.length) return groupIds;
+  if (!groupName) return [];
+  const { baseUrl, apiToken, caCert } = globalArgs;
+  const groups = await zabbixRpc(baseUrl, apiToken, "hostgroup.get", {
+    output: ["groupid", "name"],
+    filter: { name: [groupName] },
+  }, caCert) as Array<{ groupid: string }>;
+  if (groups.length === 0) {
+    throw new Error(`Host group not found: ${groupName}`);
+  }
+  return groups.map((g) => g.groupid);
+}
+
 // =============================================================================
 // Model Definition
 // =============================================================================
@@ -420,6 +492,20 @@ export const model = {
       schema: TemplateLinkageSchema,
       lifetime: "15m" as const,
       garbageCollection: 5,
+    },
+    scoped_triggers: {
+      description:
+        "Triggers at or above a minimum severity, optionally scoped to a host group, with technical host names and a truncation flag",
+      schema: ScopedTriggersSchema,
+      lifetime: "10m" as const,
+      garbageCollection: 5,
+    },
+    scoped_events: {
+      description:
+        "Trigger state-change events, optionally scoped to a host group, with technical host names and a truncation flag",
+      schema: ScopedEventsSchema,
+      lifetime: "5m" as const,
+      garbageCollection: 10,
     },
   },
   methods: {
@@ -1346,6 +1432,220 @@ export const model = {
         context.logger.info("Fetched Zabbix template linkage", {
           templates: templates.length,
           truncated: data.truncated,
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    get_triggers_scoped: {
+      description:
+        "List triggers at or above a minimum severity, optionally scoped to a host group, with technical host names and an explicit truncation flag. Use instead of get_triggers when severity matters: get_triggers has no severity filter, so standing low-severity problems can crowd disasters out of the limit.",
+      arguments: z.object({
+        minSeverity: z.number().optional().describe(
+          "Minimum trigger severity, 0-5 (default 4, high). Use 0 for everything.",
+        ),
+        onlyProblems: z.boolean().optional().describe(
+          "If true, return only triggers in PROBLEM state (default true)",
+        ),
+        groupIds: z.array(z.string()).optional().describe(
+          "Host group IDs to scope to",
+        ),
+        groupName: z.string().optional().describe(
+          "Host group name to scope to (exact match). Alternative to groupIds.",
+        ),
+        limit: z.number().optional().describe(
+          "Max triggers to return (default 500). Check the truncated flag.",
+        ),
+      }),
+      execute: async (
+        args: {
+          minSeverity?: number;
+          onlyProblems?: boolean;
+          groupIds?: string[];
+          groupName?: string;
+          limit?: number;
+        },
+        context: ModelContext,
+      ) => {
+        const { baseUrl, apiToken, caCert } = context.globalArgs;
+        const minSeverity = args.minSeverity ?? 4;
+        const limit = args.limit ?? 500;
+        const groupIds = await resolveGroupIds(
+          context.globalArgs,
+          args.groupIds,
+          args.groupName,
+        );
+
+        const params: Record<string, unknown> = {
+          output: [
+            "triggerid",
+            "description",
+            "expression",
+            "priority",
+            "value",
+            "lastchange",
+          ],
+          selectHosts: ["hostid", "host", "name"],
+          expandDescription: true,
+          expandExpression: true,
+          min_severity: minSeverity,
+          sortfield: "lastchange",
+          sortorder: "DESC",
+          limit: limit + 1,
+        };
+        if (groupIds.length > 0) params.groupids = groupIds;
+        if (args.onlyProblems ?? true) params.filter = { value: 1 };
+
+        const result = await zabbixRpc(
+          baseUrl,
+          apiToken,
+          "trigger.get",
+          params,
+          caCert,
+        ) as unknown[];
+
+        const truncated = result.length > limit;
+
+        // deno-lint-ignore no-explicit-any
+        const triggers = result.slice(0, limit).map((t: any) => ({
+          triggerid: t.triggerid,
+          description: t.description,
+          expression: t.expression,
+          priority: t.priority,
+          value: t.value,
+          lastchange: t.lastchange,
+          hosts: (t.hosts ?? []).map((h: Record<string, string>) => ({
+            hostid: h.hostid,
+            host: h.host,
+            name: h.name,
+          })),
+        }));
+
+        const data = {
+          triggers,
+          totalCount: triggers.length,
+          limit,
+          truncated,
+          minSeverity,
+          groupIds,
+          fetchedAt: new Date().toISOString(),
+        };
+
+        const scope = groupIds.length > 0
+          ? `group-${groupIds.join("-")}`
+          : "all";
+        const handle = await context.writeResource(
+          "scoped_triggers",
+          `scoped-triggers-${scope}-sev${minSeverity}`,
+          data,
+        );
+        context.logger.info("Fetched scoped Zabbix triggers", {
+          count: triggers.length,
+          minSeverity,
+          truncated,
+        });
+        return { dataHandles: [handle] };
+      },
+    },
+
+    get_events_scoped: {
+      description:
+        "List recent trigger events, optionally scoped to a host group, with technical host names and an explicit truncation flag. Use instead of get_events when the question is about a host group: get_events scopes by hostid only, and a large group puts every hostid in the data instance name.",
+      arguments: z.object({
+        groupIds: z.array(z.string()).optional().describe(
+          "Host group IDs to scope to",
+        ),
+        groupName: z.string().optional().describe(
+          "Host group name to scope to (exact match). Alternative to groupIds.",
+        ),
+        severities: z.array(z.number()).optional().describe(
+          "Filter by severities 0-5. Omit for all severities.",
+        ),
+        limit: z.number().optional().describe(
+          "Max events to return (default 200). Check the truncated flag.",
+        ),
+      }),
+      execute: async (
+        args: {
+          groupIds?: string[];
+          groupName?: string;
+          severities?: number[];
+          limit?: number;
+        },
+        context: ModelContext,
+      ) => {
+        const { baseUrl, apiToken, caCert } = context.globalArgs;
+        const limit = args.limit ?? 200;
+        const groupIds = await resolveGroupIds(
+          context.globalArgs,
+          args.groupIds,
+          args.groupName,
+        );
+
+        const params: Record<string, unknown> = {
+          output: [
+            "eventid",
+            "objectid",
+            "clock",
+            "value",
+            "name",
+            "severity",
+            "acknowledged",
+          ],
+          selectHosts: ["hostid", "host", "name"],
+          sortfield: ["clock", "eventid"],
+          sortorder: "DESC",
+          limit: limit + 1,
+        };
+        if (groupIds.length > 0) params.groupids = groupIds;
+        if (args.severities?.length) params.severities = args.severities;
+
+        const result = await zabbixRpc(
+          baseUrl,
+          apiToken,
+          "event.get",
+          params,
+          caCert,
+        ) as unknown[];
+
+        const truncated = result.length > limit;
+
+        // deno-lint-ignore no-explicit-any
+        const events = result.slice(0, limit).map((e: any) => ({
+          eventid: e.eventid,
+          objectid: e.objectid,
+          clock: e.clock,
+          value: e.value,
+          name: e.name || undefined,
+          severity: e.severity ?? undefined,
+          acknowledged: e.acknowledged ?? undefined,
+          hosts: (e.hosts ?? []).map((h: Record<string, string>) => ({
+            hostid: h.hostid,
+            host: h.host,
+            name: h.name,
+          })),
+        }));
+
+        const data = {
+          events,
+          totalCount: events.length,
+          limit,
+          truncated,
+          groupIds,
+          fetchedAt: new Date().toISOString(),
+        };
+
+        const scope = groupIds.length > 0
+          ? `group-${groupIds.join("-")}`
+          : "all";
+        const handle = await context.writeResource(
+          "scoped_events",
+          `scoped-events-${scope}`,
+          data,
+        );
+        context.logger.info("Fetched scoped Zabbix events", {
+          count: events.length,
+          truncated,
         });
         return { dataHandles: [handle] };
       },
